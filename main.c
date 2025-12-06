@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -11,8 +12,13 @@ enum directions {
     DOWN,
     LEFT,
 };
+#define SQ(x) (x*x)
+
 #define WALL 'M'
 #define PATH ' '
+#define START 'S'
+#define END 'E'
+
 
 int COLS = 61;
 int ROWS = 21;
@@ -29,6 +35,53 @@ void shuffle_array(int directions[4], int size) {
     }
     
 }
+// TODO: could use a clean up
+void generate_random_start_end(char **maze) {
+    int s_x;
+    int s_y;
+    while (1)
+    {
+        int vertical = rand() % 2;
+        if (vertical)
+        {
+            int side = rand() % 2;
+            int x = side * COLS-1;
+            int y = rand() % ROWS;
+            if (maze[y][x] != PATH)
+            {
+                continue;
+            }
+            maze[y][x] = 'S';
+            s_x = x;
+            s_y = y;
+            break; 
+        } else {
+            int side = rand() % 2;
+            int x = rand() % COLS;
+            int y = side * ROWS-1;
+            if (maze[y][x] != PATH)
+            {
+                continue;
+            }
+            maze[y][x] = 'S';
+            s_x = x;
+            s_y = y;
+            break;
+        }
+    }
+    while(1) {
+        int e_x = rand() % COLS;
+        int e_y = rand() % ROWS;
+
+        if (maze[e_y][e_x] != PATH || sqrt(SQ(s_x - e_x) + SQ(s_y - s_x)) > (sqrt(SQ(ROWS) + SQ(COLS))/2))
+        {
+            maze[e_y][e_x] = 'E';
+            return;
+        }
+        
+    }
+    
+}
 
 int main(int argc, char const *argv[])
 {
@@ -38,6 +91,8 @@ int main(int argc, char const *argv[])
     char **maze = init_maze(); // todo: add arguments
 
     generate_maze(maze, 0, 0);
+    generate_random_start_end(maze);
+    draw_map(maze);
     return 0;
 }
 
@@ -89,7 +144,26 @@ void draw_map(char **maze) {
     for (size_t i = 0; i < ROWS; i++)
     {
         write(STDOUT_FILENO, "#", 1);
-        write(STDOUT_FILENO, maze[i], COLS);
+        for (size_t c = 0; c < COLS; c++)
+        {
+            switch (maze[i][c])
+            {
+            case WALL:
+                write(STDOUT_FILENO, "\xE2\x96\x88", 3);
+                break;
+            case PATH:
+                write(STDOUT_FILENO, "\xE2\x96\x91", 3);
+                break;
+            case START:
+                write(STDOUT_FILENO, "\xE2\x98\x85", 3);
+                break;
+            case END:
+                write(STDOUT_FILENO, "\xE2\x9D\xA4", 3);
+                break;
+            default:
+                break;
+            }
+        }        
         write(STDOUT_FILENO, "#\n", 2);
     }
     for (int i = 0; i < COLS + 2; i++)
@@ -97,7 +171,7 @@ void draw_map(char **maze) {
         write(STDOUT_FILENO, "#", 1);
     }
     printf("\n");
-    usleep(100 * 1000);
+    // usleep(100 * 1000);
 }
 char ** init_maze()
 {
